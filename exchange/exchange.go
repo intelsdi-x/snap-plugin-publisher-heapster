@@ -29,11 +29,6 @@ import (
 	"github.com/intelsdi-x/snap-plugin-publisher-heapster/logcontrol"
 )
 
-const (
-	// StubIncomingDockerData enables generating stub data for development-tests
-	StubIncomingDockerData = true
-)
-
 // StatsRequest is a struct representing HTTP request for stats.
 type StatsRequest struct {
 	// ContainerName is name of the container to retrieve stats for
