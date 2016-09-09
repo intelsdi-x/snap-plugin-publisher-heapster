@@ -45,7 +45,7 @@ const (
 )
 
 const (
-	defStatsDepth   = 10
+	defStatsDepth   = 0
 	defServerAddr   = ""
 	defServerPort   = 8777
 	defStatsSpanStr = "10m"
