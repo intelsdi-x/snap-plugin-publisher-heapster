@@ -139,11 +139,18 @@ func (p *processingContext) ingestCustomMetricsFrom(metric *plugin.MetricType) {
 	if !validCustomMetric {
 		return
 	}
-	container, knowncontainer := p.memory.ContainerMap[containerPath]
-	if !knowncontainer {
-		return
+	if containerPath != "*" {
+		container, knowncontainer := p.memory.ContainerMap[containerPath]
+		if !knowncontainer {
+			return
+		}
+		p.insertIntoCustomMetrics(containerPath, container, specs, metric)
+	} else if len(p.memory.ContainerMap) > 0 {
+		clog.WithField("metric_name", metric.Namespace().String()).Debug("spreading extracted custom metrics over all containers")
+		for matchingPath, matchingContainer := range p.memory.ContainerMap {
+			p.insertIntoCustomMetrics(matchingPath, matchingContainer, specs, metric)
+		}
 	}
-	p.insertIntoCustomMetrics(containerPath, container, specs, metric)
 }
 
 // insertIntoCustomMetrics inserts custom metric specs into
