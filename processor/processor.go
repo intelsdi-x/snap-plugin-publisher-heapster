@@ -282,7 +282,7 @@ func (p *processingContext) ingestDockersTree(dtree map[string]interface{}) (con
 		container := p.memory.ContainerMap[id]
 		p.statsContainersPcsdMap[id] = true
 		p.updateContainerStats(container, dockerMetrics.(map[string]interface{}))
-		containerPaths = append(containerPaths, container.Name)
+		containerPaths = append(containerPaths, container.Id)
 	}
 	return containerPaths
 }
