@@ -34,6 +34,7 @@ Conforming to API of Kubelet this publisher can be used as an alternate backend 
   * [Configuration parameters](#configuration-parameters)
   * [Custom metrics](#custom-metrics)
   * [Examples](#examples)
+  * [Known limitations](#known-limitations)  
   * [Roadmap](#roadmap)
 3. [Community Support](#community-support)
 4. [Contributing](#contributing)
@@ -174,7 +175,7 @@ Here's the list of tags supported by heapster publisher with a description:
   defaults to `int`
 * `custom_metric_units` - purely informative purpose, describes the units of the metric data;
   defaults to `none`
-* `custom_metric_container_path` - name of the container that should have those custom metrics assigned;
+* `custom_metric_container_path` - id of the container that should have those custom metrics assigned;
   defaults to `/`, or root container
 
 A metric must be tagged with **at least one** of the tags above to be recognized
@@ -280,6 +281,14 @@ You should see output similar to this one:
                 },
 [...] Rest ommitted
 ```
+
+### Known Limitations
+
+When using tags for binding metrics to specific containers only the Id
+of a container is recognized. That is, although a tag is named `custom_metric_container_path`,
+this is understood and matched only against container Ids. In case there
+is a container Id duplicate in system, custom metrics will appear only
+for one of the containers.
 
 ### Roadmap
 
