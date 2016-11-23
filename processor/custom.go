@@ -57,15 +57,15 @@ func init() {
 }
 
 // mergeCustomMetricsFor flushes pending custom metric values into
-// container object identified by containerPath.
+// container object identified by id.
 // Pending metric values are copied into container's Stats element that has
 // timestamp greater than or equal to each value's timestamp.
-func (p *processingContext) mergeCustomMetricsFor(containerPath string) {
-	containerValuesMap, gotContainerValuesMap := p.memory.PendingMetrics[containerPath]
+func (p *processingContext) mergeCustomMetricsFor(id string) {
+	containerValuesMap, gotContainerValuesMap := p.memory.PendingMetrics[id]
 	if !gotContainerValuesMap {
 		return
 	}
-	container := p.memory.ContainerMap[containerPath]
+	container := p.memory.ContainerMap[id]
 	for _, statsElem := range container.Stats {
 		refStamp := statsElem.Timestamp
 		for metricName, valueList := range containerValuesMap {
@@ -90,12 +90,12 @@ func (p *processingContext) mergeCustomMetricsFor(containerPath string) {
 // that will never be flushed.
 // Pending custom values that are older than any of Stats elements are discarded
 // from pending values for given container.
-func (p *processingContext) discardTooOldCustomValuesFor(containerPath string) {
-	containerValuesMap, gotContainerValuesMap := p.memory.PendingMetrics[containerPath]
+func (p *processingContext) discardTooOldCustomValuesFor(id string) {
+	containerValuesMap, gotContainerValuesMap := p.memory.PendingMetrics[id]
 	if !gotContainerValuesMap {
 		return
 	}
-	container := p.memory.ContainerMap[containerPath]
+	container := p.memory.ContainerMap[id]
 	var oldestStamp *time.Time
 	for _, statsElem := range container.Stats {
 		refStamp := statsElem.Timestamp
@@ -135,20 +135,27 @@ func (p *processingContext) ingestCustomMetrics(mtree map[string]interface{}) {
 // Discovered metric Spec's are inserted into container's Spec structure to
 // serve as blueprints for actual custom metric values.
 func (p *processingContext) ingestCustomMetricsFrom(metric *plugin.MetricType) {
-	containerPath, specs, validCustomMetric := p.extractCustomMetrics(metric)
+	id, specs, validCustomMetric := p.extractCustomMetrics(metric)
 	if !validCustomMetric {
 		return
 	}
-	container, knowncontainer := p.memory.ContainerMap[containerPath]
-	if !knowncontainer {
-		return
+	if id != "*" {
+		container, knowncontainer := p.memory.ContainerMap[id]
+		if !knowncontainer {
+			return
+		}
+		p.insertIntoCustomMetrics(id, container, specs, metric)
+	} else if len(p.memory.ContainerMap) > 0 {
+		clog.WithField("metric_name", metric.Namespace().String()).Debug("spreading extracted custom metrics over all containers")
+		for matchingId, matchingContainer := range p.memory.ContainerMap {
+			p.insertIntoCustomMetrics(matchingId, matchingContainer, specs, metric)
+		}
 	}
-	p.insertIntoCustomMetrics(containerPath, container, specs, metric)
 }
 
 // insertIntoCustomMetrics inserts custom metric specs into
 // container's Spec structure and the custom metric values into pending list.
-func (p *processingContext) insertIntoCustomMetrics(containerPath string, container *cadv.ContainerInfo, specs []cadv.MetricSpec, metric *plugin.MetricType) {
+func (p *processingContext) insertIntoCustomMetrics(id string, container *cadv.ContainerInfo, specs []cadv.MetricSpec, metric *plugin.MetricType) {
 	values := p.extractCustomValues(metric, specs)
 	metricList := &container.Spec.CustomMetrics
 	dbgValuesIn := []string{}
@@ -173,10 +180,10 @@ func (p *processingContext) insertIntoCustomMetrics(containerPath string, contai
 		dbgValuesIn = append(dbgValuesIn, spec.Name)
 
 		// find room for custom metrics
-		dockerValuesMap, gotDockerValuesMap := p.memory.PendingMetrics[containerPath]
+		dockerValuesMap, gotDockerValuesMap := p.memory.PendingMetrics[id]
 		if !gotDockerValuesMap {
 			dockerValuesMap = map[string][]cadv.MetricVal{}
-			p.memory.PendingMetrics[containerPath] = dockerValuesMap
+			p.memory.PendingMetrics[id] = dockerValuesMap
 		}
 		statsList, _ := dockerValuesMap[spec.Name]
 		statsList = append(statsList, customVal)
@@ -192,7 +199,7 @@ func (p *processingContext) insertIntoCustomMetrics(containerPath string, contai
 // on information associated with given metric instance.
 // Metric Data may represent a map. In that case each individual map entry
 // will be represented by distinct metric Spec in the resulting list.
-func (p *processingContext) extractCustomMetrics(metric *plugin.MetricType) (containerPath string, specs []cadv.MetricSpec, valid bool) {
+func (p *processingContext) extractCustomMetrics(metric *plugin.MetricType) (id string, specs []cadv.MetricSpec, valid bool) {
 	copyMetric := func(metric plugin.MetricType, nsSuffix string) *plugin.MetricType {
 		res := metric
 		res.Tags_ = make(map[string]string, len(metric.Tags_))
@@ -208,27 +215,27 @@ func (p *processingContext) extractCustomMetrics(metric *plugin.MetricType) (con
 	var valueMap map[string]float64
 	var isMap bool
 	if valueMap, isMap = metric.Data().(map[string]float64); !isMap {
-		containerPath1, spec1, valid1 := p.extractOneCustomMetric(metric)
+		id1, spec1, valid1 := p.extractOneCustomMetric(metric)
 		if !valid1 {
 			return "", specs, false
 		}
-		return containerPath1, []cadv.MetricSpec{spec1}, true
+		return id1, []cadv.MetricSpec{spec1}, true
 	}
 	specs = make([]cadv.MetricSpec, 0, len(valueMap))
 	valid = false
-	containerPath = ""
+	id = ""
 	for k, v := range valueMap {
 		nuMetric := copyMetric(*metric, k)
 		nuMetric.Data_ = v
-		containerPath1, spec1, valid1 := p.extractOneCustomMetric(nuMetric)
-		if containerPath == "" {
-			containerPath = containerPath1
+		id1, spec1, valid1 := p.extractOneCustomMetric(nuMetric)
+		if id == "" {
+			id = id1
 		}
 		valid = valid || valid1
 		specs = append(specs, spec1)
 	}
 	if valid {
-		return containerPath, specs, true
+		return id, specs, true
 	}
 	return "", specs[:0], false
 }
@@ -237,10 +244,10 @@ func (p *processingContext) extractCustomMetrics(metric *plugin.MetricType) (con
 // information associated with given metric instance.
 // Function expects metric Data to be assignable to primitive types - Float or
 // Int.
-func (p *processingContext) extractOneCustomMetric(metric *plugin.MetricType) (containerPath string, spec cadv.MetricSpec, valid bool) {
+func (p *processingContext) extractOneCustomMetric(metric *plugin.MetricType) (id string, spec cadv.MetricSpec, valid bool) {
 	tags := metric.Tags()
 	ns := metric.Namespace()
-	containerPath = ""
+	id = ""
 	spec = cadv.MetricSpec{
 		Type:   defCustomMetricType,
 		Format: defCustomMetricFormat,
@@ -259,11 +266,11 @@ func (p *processingContext) extractOneCustomMetric(metric *plugin.MetricType) (c
 	if spec.Units, haveUnits = tags[customMetricUnits]; !haveUnits {
 		spec.Units = defCustomMetricUnits
 	}
-	if containerPath, havecontainerPath = tags[customMetricContainerPath]; !havecontainerPath {
-		containerPath = defCustomMetricContainerPath
+	if id, havecontainerPath = tags[customMetricContainerPath]; !havecontainerPath {
+		id = defCustomMetricContainerPath
 	}
 	if haveName || haveType || haveFormat || haveUnits || havecontainerPath {
-		return containerPath, spec, true
+		return id, spec, true
 	}
 	return "", spec, false
 }
