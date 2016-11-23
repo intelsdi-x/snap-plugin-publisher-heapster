@@ -58,9 +58,9 @@ type StatsRequest struct {
 // read and update operations.
 type MetricMemory struct {
 	sync.RWMutex
-	// ContainerMap refers to all containers known to publisher.
+	// ContainerMap refers to all containers known to publisher., ref by Id
 	ContainerMap map[string]*cadv.ContainerInfo
-	// PendingMetrics holds custom metrics that await publishing.
+	// PendingMetrics holds custom metrics that await publishing, ref by Id
 	PendingMetrics map[string]map[string][]cadv.MetricVal
 }
 
