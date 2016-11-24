@@ -60,6 +60,7 @@ You can get the pre-built binaries for your OS and architecture at snap's [GitHu
 
 ### To build the plugin binary:
 Fork https://github.com/intelsdi-x/snap-plugin-publisher-heapster
+
 Clone repo into `$GOPATH/src/github.com/intelsdi-x/`:
 
 ```bash
@@ -76,8 +77,6 @@ This builds the plugin in `/build/rootfs/`
 
 ### Configuration and Usage
 * Set up the [snap framework](https://github.com/intelsdi-x/snap/blob/master/README.md#getting-started)
-* Ensure `$SNAP_PATH` is exported
-`export SNAP_PATH=$GOPATH/src/github.com/intelsdi-x/snap/build`
 
 ## Documentation
 
@@ -187,18 +186,26 @@ file [examples/tasks/heapster-custom-metrics.yaml](https://github.com/intelsdi-x
 ### Examples
 
 You can find example task manifests for using this plugin in folder [examples/tasks/](https://github.com/intelsdi-x/snap-plugin-publisher-heapster/tree/master/exchange/examples/tasks)
+
+Set up the [Snap framework](https://github.com/intelsdi-x/snap/blob/master/README.md#getting-started)
+
+Ensure [Snap daemon is running](https://github.com/intelsdi-x/snap#running-snap) in one of the following ways:
+* initd: `service snap-telemetry start`
+* systemd: `systemctl start snap-telemetry`
+* manually: `sudo snapteld -l 1 -t 0 &`
+
 Start snap in one terminal window:
 
 ```bash
-$SNAP_PATH/bin/snapd -l 1 -t 0
+$ snapteld -l 1 -t 0
 ```
 
 In another terminal window load required plugins - docker and heapster
 (replace fully-qualified paths with actual plugin binaries if you downloaded them):
 ```bash
-cd $GOPATH/src/github.com/intelsdi-x/
-$SNAP_PATH/bin/snapctl plugin load ./snap-plugin-collector-docker/build/rootfs/snap-plugin-collector-docker
-$SNAP_PATH/bin/snapctl plugin load ./snap-plugin-collector-docker/build/rootfs/snap-plugin-publisher-heapster
+$ cd $GOPATH/src/github.com/intelsdi-x/
+$ snaptel plugin load ./snap-plugin-collector-docker/build/rootfs/snap-plugin-collector-docker
+$ snaptel plugin load ./snap-plugin-collector-docker/build/rootfs/snap-plugin-publisher-heapster
 ```
 
 Create task manifest referencing docker- and heapster- plugins:
@@ -223,7 +230,7 @@ Create task manifest referencing docker- and heapster- plugins:
 Create a task by the following command:
 ```bash
 cd $GOPATH/src/github.com/intelsdi-x/
-$ $SNAP_PATH/bin/snapctl task create -t ./snap-plugin-publisher-heapster/examples/tasks/heapster-with-docker.yaml
+$ snaptel task create -t ./snap-plugin-publisher-heapster/examples/tasks/heapster-with-docker.yaml
 
 Using task manifest to create task
 Task created
@@ -296,7 +303,7 @@ There isn't a current roadmap for this plugin, but it is in active development.
 As we launch this plugin, we do not have any outstanding requirements for the next release. If you have a feature request, please add it as an [issue](https://github.com/intelsdi-x/snap-plugin-collector-docker/issues/new) and/or submit a [pull request](https://github.com/intelsdi-x/snap-plugin-publisher-heapster/pulls).
 
 ## Community Support
-This repository is one of **many** plugins in the **snap framework**: a powerful telemetry framework. See the full project at http://github.com/intelsdi-x/snap To reach out to other users, head to the [main framework](https://github.com/intelsdi-x/snap#community-support)
+This repository is one of **many** plugins in the **Snap framework**: a powerful telemetry framework. See the full project at http://github.com/intelsdi-x/snap To reach out to other users, head to the [main framework](https://github.com/intelsdi-x/snap#community-support)
 
 ## Contributing
 We love contributions!
@@ -304,7 +311,7 @@ We love contributions!
 There's more than one way to give back, from examples to blogs to code updates. See our recommended process in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
-[snap](http://github.com/intelsdi-x/snap), along with this plugin, is an Open Source software released under the Apache 2.0 [License](LICENSE).
+[Snap](http://github.com/intelsdi-x/snap), along with this plugin, is an Open Source software released under the Apache 2.0 [License](LICENSE).
 
 ## Acknowledgements
 
