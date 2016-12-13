@@ -1,0 +1,17 @@
+package: github.com/intelsdi-x/snap-plugin-publisher-heapster
+import:
+- package: github.com/Sirupsen/logrus
+- package: github.com/google/cadvisor
+  subpackages:
+  - info/v1
+- package: github.com/gorilla/mux
+- package: github.com/intelsdi-x/snap
+  subpackages:
+  - control/plugin
+  - control/plugin/cpolicy
+  - core
+  - core/ctypes
+testImport:
+- package: github.com/smartystreets/goconvey
+  subpackages:
+  - convey
