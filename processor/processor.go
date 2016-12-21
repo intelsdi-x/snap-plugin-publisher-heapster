@@ -312,6 +312,7 @@ func (p *processingContext) ingestContainerLabels(dockerID string, container *ca
 	for k := range labelsMap {
 		v, _ := labelsMap.Get(k)
 		if v != nil {
+			k = strings.Replace(k, "_", ".", -1)
 			container.Labels[k] = fmt.Sprint(v)
 		} else {
 			container.Labels[k] = "null"
@@ -339,12 +340,14 @@ func (p *processingContext) ingestContainerSpec(dockerID string, container *cadv
 		spec.CreationTime = getHostBootTime()
 	}
 	vf.enter(fmt.Sprintf("%s/memory_stats", dockerID))
-	if memStatsRawObj := vf.filter1(jsonutil.NewObjWalker(dtree).Seek("/cgroups/memory_stats/stats")); memStatsRawObj != nil {
+	if memStatsRawObj := vf.filter1(jsonutil.NewObjWalker(dtree).Seek("/stats/cgroups/memory_stats/stats")); memStatsRawObj != nil {
 		spec.HasMemory = true
 		memStatsMap := MetricMap(memStatsRawObj.(map[string]interface{}))
 		spec.Memory.Limit = vf.filter1(memStatsMap.GetUint64("limit_in_bytes", 0)).(uint64)
 		spec.Memory.SwapLimit = vf.filter1(memStatsMap.GetUint64("swap_limit_in_bytes", 0)).(uint64)
 	}
+
+	spec.HasCpu = true
 	spec.HasNetwork = true
 	spec.HasFilesystem = true
 	spec.HasCustomMetrics = true
