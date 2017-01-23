@@ -3,6 +3,7 @@ http://www.apache.org/licenses/LICENSE-2.0.txt
 
 
 Copyright 2016 Intel Corporation
+Copyright 2014 Google Inc. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,6 +20,10 @@ limitations under the License.
 
 // Package exchange groups together pieces of data shared between publisher
 // components and some common configuration.
+// Package contains code from Kubernetes Heapster (https://github.com/kubernetes/heapster) with following changes:
+// - structure StatsRequest:
+//   - added comment for the StatsRequest structure
+//   - altered comments for all fields in the structure.
 package exchange
 
 import (
