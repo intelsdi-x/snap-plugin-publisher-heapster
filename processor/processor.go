@@ -312,6 +312,7 @@ func (p *processingContext) ingestContainerLabels(dockerID string, container *ca
 	for k := range labelsMap {
 		v, _ := labelsMap.Get(k)
 		if v != nil {
+			k = strings.Replace(k, "_", ".", -1)
 			container.Labels[k] = fmt.Sprint(v)
 		} else {
 			container.Labels[k] = "null"
@@ -334,17 +335,20 @@ func (p *processingContext) ingestContainerSpec(dockerID string, container *cadv
 		specMap := MetricMap(specRawObj.(map[string]interface{}))
 		spec.CreationTime = vf.filter1(specMap.GetTimeFromStr("creation_time", dummyTimestamp)).(time.Time)
 		spec.Image = vf.filter1(specMap.GetStr("image_name", "")).(string)
+		spec.Labels = container.Labels
 	} else if dockerID == "/" {
 		// ok to have no /spec branch for root container
 		spec.CreationTime = getHostBootTime()
 	}
 	vf.enter(fmt.Sprintf("%s/memory_stats", dockerID))
-	if memStatsRawObj := vf.filter1(jsonutil.NewObjWalker(dtree).Seek("/cgroups/memory_stats/stats")); memStatsRawObj != nil {
+	if memStatsRawObj := vf.filter1(jsonutil.NewObjWalker(dtree).Seek("/stats/cgroups/memory_stats/statistics")); memStatsRawObj != nil {
 		spec.HasMemory = true
 		memStatsMap := MetricMap(memStatsRawObj.(map[string]interface{}))
 		spec.Memory.Limit = vf.filter1(memStatsMap.GetUint64("limit_in_bytes", 0)).(uint64)
 		spec.Memory.SwapLimit = vf.filter1(memStatsMap.GetUint64("swap_limit_in_bytes", 0)).(uint64)
 	}
+
+	spec.HasCpu = true
 	spec.HasNetwork = true
 	spec.HasFilesystem = true
 	spec.HasCustomMetrics = true
@@ -405,22 +409,22 @@ func (p *processingContext) ingestCPUStats(container *cadv.ContainerInfo, stats 
 		cpuUsage.User = vf.filter1(usageMap.GetUint64("usage_in_usermode", 0)).(uint64)
 		cpuUsage.Total = vf.filter1(usageMap.GetUint64("total_usage", 0)).(uint64)
 	}
-	perCPUObj := vf.filter1(jsonutil.NewObjWalker(statsMap).Seek("/cgroups/cpu_stats/cpu_usage/percpu_usage"))
+	perCPUObj := vf.filter1(jsonutil.NewObjWalker(statsMap).Seek("/cgroups/cpu_stats/cpu_usage/per_cpu"))
 	if perCPUObj == nil {
 		return
 	}
 	cpuMap := map[string]uint64{}
 	cpuMax := -1
-	vf.enter(fmt.Sprintf("%s/percpu_usage", container.Id))
+	vf.enter(fmt.Sprintf("%s/per_cpu", container.Id))
 	cpuUsage := &stats.Cpu.Usage
 	perCPUMap := MetricMap(perCPUObj.(map[string]interface{})).FlattenValues()
 	for k := range perCPUMap {
-		vf.enter(fmt.Sprintf("%s/percpu_usage", container.Id))
+		vf.enter(fmt.Sprintf("%s/per_cpu", container.Id))
 		cpuNum := vf.filter1(strconv.Atoi(k)).(int)
 		if _, gotError := vf.lastError(); gotError {
 			continue
 		}
-		vf.enter(fmt.Sprintf("%s/percpu_usage/%s", container.Id, cpuNum))
+		vf.enter(fmt.Sprintf("%s/per_cpu/%s", container.Id, cpuNum))
 		if cpuNum > cpuMax {
 			cpuMax = cpuNum
 		}
@@ -444,7 +448,7 @@ func (p *processingContext) ingestMemoryStats(container *cadv.ContainerInfo, sta
 	}()
 	vf.enter(fmt.Sprintf("%s/memory_stats", container.Id))
 	memMetricsObj, _ := jsonutil.NewObjWalker(statsMap).Seek("/cgroups/memory_stats")
-	memStatsObj := vf.filter1(jsonutil.NewObjWalker(statsMap).Seek("/cgroups/memory_stats/stats"))
+	memStatsObj := vf.filter1(jsonutil.NewObjWalker(statsMap).Seek("/cgroups/memory_stats/statistics"))
 	memUsageObj := vf.filter1(jsonutil.NewObjWalker(statsMap).Seek("/cgroups/memory_stats/usage"))
 	if memMetricsObj == nil {
 		return
