@@ -107,7 +107,7 @@ type DefaultContext struct {
 }
 
 type stats struct {
-	sync.RWMutex
+	mutex        *sync.RWMutex
 	StatsTxMax   int `json:"stats_tx_max"`
 	StatsTxTotal int `json:"stats_tx_total"`
 	StatsTxLast  int `json:"stats_tx_last"`
@@ -155,7 +155,7 @@ func newDefaultContext(config *exchange.SystemConfig, memory *exchange.MetricMem
 	ctx := DefaultContext{
 		config: config,
 		memory: memory,
-		stats:  &stats{},
+		stats:  &stats{mutex: &sync.RWMutex{}},
 	}
 	return ctx
 }
@@ -212,8 +212,8 @@ func (s *DefaultContext) setup() error {
 		return fmt.Errorf("server: failed to add route for conatiner stats; err: %v", err)
 	}
 	return s.AddStatusPublisher("server", func() interface{} {
-		s.stats.RLock()
-		defer s.stats.RUnlock()
+		s.stats.mutex.RLock()
+		defer s.stats.mutex.RUnlock()
 		statsCopy := *s.stats
 		return statsCopy
 	})
@@ -307,8 +307,8 @@ func copyForUpdate(container *cadv.ContainerInfo) *cadv.ContainerInfo {
 func (s *DefaultContext) buildStatsResponse(request *exchange.StatsRequest) interface{} {
 	s.memory.RLock()
 	defer s.memory.RUnlock()
-	s.stats.Lock()
-	defer s.stats.Unlock()
+	s.stats.mutex.Lock()
+	defer s.stats.mutex.Unlock()
 	res := map[string]*cadv.ContainerInfo{}
 	statsTx := 0
 	statsDd := 0

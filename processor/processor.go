@@ -57,7 +57,7 @@ type DefaultInstance struct {
 // This type is equipped with RW lock that should be obtained separately for
 // read and update operations.
 type processorStats struct {
-	sync.RWMutex
+	mutex                *sync.RWMutex
 	MetricsRxTotal       int `json:"metrics_received_total"`
 	MetricsRxLast        int `json:"metrics_received_last"`
 	ContainersRxLast     int `json:"containers_received_last"`
@@ -136,7 +136,7 @@ var NewProcessor = func(config *exchange.SystemConfig, memory *exchange.MetricMe
 	processor := DefaultInstance{
 		config: config,
 		memory: memory,
-		stats:  &processorStats{},
+		stats:  &processorStats{mutex: &sync.RWMutex{}},
 	}
 	return &processor, nil
 }
@@ -174,8 +174,8 @@ onBootTimeSet:
 func (p *DefaultInstance) ProcessMetrics(rawMetrics []plugin.MetricType) {
 	p.memory.Lock()
 	defer p.memory.Unlock()
-	p.stats.Lock()
-	defer p.stats.Unlock()
+	p.stats.mutex.Lock()
+	defer p.stats.mutex.Unlock()
 
 	ctx := processingContext{
 		DefaultInstance:        p,
@@ -188,8 +188,8 @@ func (p *DefaultInstance) ProcessMetrics(rawMetrics []plugin.MetricType) {
 // DeliverStatus provides a data structure reflecting state of
 // processor part for diagnostic purposes.
 func (p *DefaultInstance) DeliverStatus() interface{} {
-	p.stats.RLock()
-	defer p.stats.RUnlock()
+	p.stats.mutex.RLock()
+	defer p.stats.mutex.RUnlock()
 	statsSnapshot := *p.stats
 	return statsSnapshot
 }
@@ -424,7 +424,7 @@ func (p *processingContext) ingestCPUStats(container *cadv.ContainerInfo, stats 
 		if _, gotError := vf.lastError(); gotError {
 			continue
 		}
-		vf.enter(fmt.Sprintf("%s/per_cpu/%s", container.Id, cpuNum))
+		vf.enter(fmt.Sprintf("%s/per_cpu/%d", container.Id, cpuNum))
 		if cpuNum > cpuMax {
 			cpuMax = cpuNum
 		}
