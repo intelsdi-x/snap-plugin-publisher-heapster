@@ -32,12 +32,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	cadv "github.com/google/cadvisor/info/v1"
 	"github.com/intelsdi-x/snap-plugin-publisher-heapster/exchange"
 	"github.com/intelsdi-x/snap-plugin-publisher-heapster/jsonutil"
 	"github.com/intelsdi-x/snap-plugin-publisher-heapster/logcontrol"
 	"github.com/intelsdi-x/snap/control/plugin"
+	"github.com/sirupsen/logrus"
 )
 
 const (
