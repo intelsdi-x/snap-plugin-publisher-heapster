@@ -26,7 +26,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // LogHandle is a logger that can be identified and have its threshold level

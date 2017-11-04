@@ -28,7 +28,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/intelsdi-x/snap-plugin-publisher-heapster/exchange"
 	"github.com/intelsdi-x/snap-plugin-publisher-heapster/logcontrol"
 	"github.com/intelsdi-x/snap-plugin-publisher-heapster/processor"
@@ -36,6 +35,7 @@ import (
 	"github.com/intelsdi-x/snap/control/plugin"
 	"github.com/intelsdi-x/snap/control/plugin/cpolicy"
 	"github.com/intelsdi-x/snap/core/ctypes"
+	"github.com/sirupsen/logrus"
 )
 
 const (

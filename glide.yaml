@@ -1,11 +1,12 @@
 package: github.com/intelsdi-x/snap-plugin-publisher-heapster
 import:
-- package: github.com/Sirupsen/logrus
+- package: github.com/sirupsen/logrus
 - package: github.com/google/cadvisor
   subpackages:
   - info/v1
 - package: github.com/gorilla/mux
 - package: github.com/intelsdi-x/snap
+  version: ^2.0.0
   subpackages:
   - control/plugin
   - control/plugin/cpolicy
